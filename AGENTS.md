@@ -227,6 +227,12 @@ npm run build
 * `<video>` seeks via `Range` (206) through `/p`.
 * Posting to `/fetch` returns HTML/JSON rendered in the viewer.
 
+Notes implemented in this repo:
+- A React + Vite TypeScript app with `SandboxPage`, `CookieStore`, `UrlHistory` classes under `src/app/`.
+- Service worker `src/sw/proxy-sw.ts` that rewrites app-origin `/p` and `/fetch` to `VITE_WORKER_BASE`, warms connection, and broadcasts `X-Set-Cookie` via `postMessage` to update cookie jar.
+- Chat-style, light-themed UI with a sidebar of sandboxes and a main viewer pane. Media tester uses `/p?sid=..&u=..` and navigation uses `/fetch`.
+- GitHub Actions workflow deploys `dist` to `gh-pages` on push to `dev`.
+
 ---
 
 ## Repo B — Worker (Cloudflare Workers)
