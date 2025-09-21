@@ -11,6 +11,15 @@ export type PrepareOptions = {
 
 const disallowedSchemes = ['javascript:', 'data:', 'mailto:', 'tel:'];
 
+const schemePrefix = /^[a-zA-Z][a-zA-Z0-9+\-.]*:/;
+
+function isAbsoluteRef(ref: string | null): boolean {
+  if (!ref) return false;
+  const t = ref.trim();
+  if (!t) return false;
+  if (t.startsWith('//')) return true;
+  return schemePrefix.test(t);
+}
 export function toBase64Url(input: string): string {
   const encoded = btoa(unescape(encodeURIComponent(input)));
   return encoded.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -215,7 +224,17 @@ export function prepareSandboxDocument(html: string, options: PrepareOptions): P
   const { baseUrl, sandboxId, frameId } = options;
 
   doc.querySelectorAll('base').forEach(el => el.remove());
-
+  // Ensure relative URLs inside the blob-resolved document are interpreted
+  // relative to the original fetched document URL (baseUrl). We remove any
+  // existing <base> then inject a canonical one pointing at `baseUrl` so
+  // images/scripts/links that remain relative resolve against the source.
+  try {
+    const baseEl = doc.createElement('base');
+    baseEl.setAttribute('href', baseUrl);
+    doc.head?.insertBefore(baseEl, doc.head.firstChild);
+  } catch (err) {
+    // fall back silently if DOM operations fail
+  }
   const proxify = (value: string | null) => {
     const absolute = resolveAbsoluteUrl(value, baseUrl);
     if (!absolute) return null;
