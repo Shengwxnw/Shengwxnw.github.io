@@ -1,352 +1,187 @@
+Sandboxed browser in browser project
 
-Connector 
-```mermaid
-classDiagram
-  class ConnectorApp {
-    +state: Map<string,SandboxPage>
-    +createSandbox(seedUrl?): string
-    +renderChat(id): JSX
-  }
+> New Version upcoming ( Solve relative url issues， migrate to new router schema ）
 
-  class SandboxPage {
-    +id: string
-    +title: string
-    +homeUrl: string
-    +cookieJar: CookieStore
-    +history: UrlHistory
-    +settings: SandboxSettings
-    +navigate(url, method="GET", body?, headers?): Promise<Response>
-    +renderDocument(resp): void
-  }
+- Sandbox enhance: A perfect isolated browser environment + a redirect component (simulated browser send requests as any regular browser, the redirect component wrap the request to router)
+- On UI: A simulated browser container that would display html + js + css in it and can full screen
+- All kinds of media should be handed correctly. Unfied url entrance, no seperate `Load Media` Block.
 
-  class CookieStore {
-    +getCookieHeader(url): string
-    +applySetCookie(url, setCookieHeader): void
-    +load(): Promise<void>
-    +save(): Promise<void>
-  }
+You would need to know the router interface
+public repo: `https://github.com/ZihaoFU245/cf-worker-router`
+Use git: `https://github.com/ZihaoFU245/cf-worker-router.git`
 
-  class UrlHistory {
-    +back(): string
-    +forward(): string
-    +push(url): void
-  }
+For you convinience, below is a doc from router repo:
 
-  class SandboxSettings {
-    +sessionId: string    // shared with Worker
-    +corsMode: "pinned" | "star"
-    +rewriteMode: "auto" | "off" // HTML rewriter on Worker
-  }
+```Markdown
+# Connector Integration Guide
 
-  class ServiceWorkerProxy {
-    +install()
-    +rewriteRequest(req): Request // to Worker /p or /fetch with sessionId
-    +handleSetCookie(resp): void  // from custom header
-  }
+This document explains how a local connector application should talk to the
+router worker. It focuses on HTTP contracts, payload formats, and the
+expectations around cookies and batching so that connectors can reliably proxy
+browser-style traffic through the worker.
 
-  ConnectorApp "1" o-- "*" SandboxPage
-  SandboxPage "1" --> "1" CookieStore
-  SandboxPage "1" --> "1" UrlHistory
-  ConnectorApp "1" --> "1" ServiceWorkerProxy
+## Overview
+
+* **Base URL** – `https://<your-worker-subdomain>.workers.dev`
+* **Authentication** – None. Callers are identified by their self-managed
+  session identifier (`sid`).
+* **Transport** – Always `https`. The worker rejects plain `http` targets.
+* **Character encoding** – All opaque payloads (request bodies and binary
+  responses) use Base64URL to stay transfer-safe over JSON.
+
+The connector is responsible for generating a stable `sid` per sandbox/tab and
+persisting any cookies that the worker echoes back via `X-Set-Cookie`.
+
+## Session Identifiers
+
+Create a unique `sid` for every sandboxed browsing context. The worker stores
+cookies per `sid`, so reuse of the identifier across sites will leak cookies.
+When a sandbox is destroyed, you can either let it expire server-side or call a
+custom cleanup endpoint you host yourself.
+
+## Available Endpoints
+
+### `GET /p`
+
+Lightweight passthrough for media elements, favicons, and other `GET`/`HEAD`
+requests that should stream straight back to the connector.
+
+| Query Parameter | Description |
+| --- | --- |
+| `sid` | Session identifier. Optional, but required for cookies. |
+| `u` | Base64URL encoded absolute `https` URL. |
+
+Forward any `Range` header when seeking within media. Responses mirror upstream
+status codes and headers (`Content-Type`, `Content-Length`, `Accept-Ranges`,
+`Content-Range`, `ETag`, `Last-Modified`). If upstream sets cookies, the worker
+returns them in `X-Set-Cookie`.
+
+### `POST /fetch`
+
+Structured control-plane call for navigation, form submissions, and API calls
+that need the full response streamed back to the connector.
+
+```jsonc
+{
+  "sid": "sandbox-123",
+  "target": "https://example.com/login",
+  "method": "POST",
+  "headers": {
+    "content-type": "application/json"
+  },
+  "bodyB64": "eyJ1c2VyIjoicm9vdCIsInBhc3MiOiJzZWNyZXQifQ" // optional
+}
 ```
 
-```mermaid
-flowchart TD
-  subgraph Worker["Cloudflare Worker"]
-    P["GET /p?sid=..&u=.. (media/GET/HEAD)"]
-    F["POST /fetch (JSON: target, method, headers, bodyB64, sid)"]
-    H["Header Filter & Range Support"]
-    C["Cookie Adapter:<br/>req: Cookie from SessionDO<br/>resp: capture Set-Cookie → X-Set-Cookie"]
-    D["SessionDO (per sid)<br/>- cookies map<br/>- lastUsed<br/>- small LRU eviction"]
-  end
+* `method` defaults to `GET`. Only `GET`, `HEAD`, and `POST` are allowed.
+* `bodyB64` must be Base64URL encoded bytes. Omit it for `GET`/`HEAD`.
+* The worker streams the upstream response body back untouched. Watch for
+  `X-Set-Cookie` headers to mirror cookies in your local jar.
 
-  subgraph Upstream["Target Site (HTTPS)"]
-    U["Any content: HTML, JSON, images, video, HLS, DASH"]
-  end
+### `POST /dispatch`
 
-  P --> C --> H --> U
-  F --> C --> H --> U
-  U --> H --> C
-  C --> D
+New batching endpoint for coordinating several upstream requests in one
+round-trip. Ideal for bootstrapping a page where multiple dependent assets must
+be fetched before rendering locally.
+
+```jsonc
+{
+  "sid": "sandbox-123",
+  "pipeline": "sequential",           // default, preserves cookie order
+  "requests": [
+    {
+      "id": "bootstrap-html",
+      "target": "https://example.com/",
+      "method": "GET",
+      "responseType": "text"
+    },
+    {
+      "id": "bootstrap-api",
+      "target": "https://example.com/api/session",
+      "method": "GET",
+      "responseType": "json"
+    }
+  ]
+}
 ```
 
+* Up to 16 sub-requests per call.
+* `responseType` controls how the worker serialises the body:
+  * `arrayBuffer` (default) – Base64 encoded bytes.
+  * `text` – UTF-8 decoded string.
+  * `json` – Parsed JSON object (falls back to raw text with a `note` on parse
+    failure).
+  * `none` – Skip body materialisation.
+* Results are returned as an array, preserving request order. Each entry
+  includes latency, redirect info, filtered headers, and an optional `body`
+  payload. Example result:
 
-```mermaid
-sequenceDiagram
-  autonumber
-  participant UI as SandboxPage (UI)
-  participant SW as Service Worker (Connector)
-  participant W as Worker (/p or /fetch)
-  participant DO as SessionDO (cookies by sid)
-  participant A as A.com (HTTPS)
-
-  Note over UI,SW: sessionId = per-sandbox GUID
-
-  rect rgb(245,245,255)
-  UI->>SW: media elements GET /p (img/video w/ Range)
-    SW->>W: GET /p?sid=SID&u=...
-    W->>DO: get cookies(SID)
-    W->>A: GET https://A.com/.. (Cookie: ... ; Range if provided)
-    A-->>W: 200/206 Stream + Set-Cookie?
-    W->>DO: merge Set-Cookie into jar
-    W-->>SW: 200/206 Stream (+ X-Set-Cookie for SW)
-    SW-->>UI: stream to element
-  end
-
-  rect rgb(245,255,245)
-    UI->>SW: navigate(url) → POST /fetch {sid,target,method,headers,bodyB64}
-    SW->>W: POST /fetch ...
-    W->>DO: cookies(SID)
-    W->>A: fetch(target,...)
-    A-->>W: status+headers+body (stream)
-    W->>DO: merge Set-Cookie
-    W-->>SW: stream + X-Set-Cookie
-    SW-->>UI: deliver; UI updates cookieJar/history
-  end
-```
-
-Design
-```mermaid
-flowchart LR
-  subgraph UI["Connector (React + Service Worker)"]
-    CH["Chat Threads"] --> SP["SandboxPage (per site)"]
-    SP --> SWp["ServiceWorkerProxy"]
-    SP --> DB["IndexedDB (cookies, history, settings)"]
-    SP --> VP["Viewer Panel (HTML)"]
-    SP --> ME["Media Elements (img/video/audio/iframe)"]
-  end
-
-  subgraph EDGE["Cloudflare Edge"]
-    WK["Worker: /p, /fetch"]
-    DO["Durable Object: SessionDO (cookies per sid)"]
-    CF["Edge Cache (media/static)"]
-    HR["HTMLRewriter (optional)"]
-  end
-
-  subgraph ORG["Target Origins"]
-    A["A.com"]
-    Others["Any https://host"]
-  end
-
-  ME -- GET /p?sid&u --> WK
-  VP -- POST /fetch --> WK
-  WK --- DO
-  WK --- CF
-  WK -. optional .-> HR
-  WK --> A
-  WK --> Others
-
-  SWp <--> WK:::warmup
-  SWp:::warmup -- warm-up / rewrites --> WK
-  DB --> SP
-```
-
-> **Important:** This project is split into **two independent repositories**. Do **not** colocate their code. Each repo can be built, tested, and deployed on its own. Integration happens strictly via the **public HTTP contract** defined below.
-
----
-
-# IMPORTANT (USER)
-You are at the connector repo, read above the design file, and work on connector only, here include worker is only for you to take reference. It is a browser in browser application, with cloudflare be the middle person.
-
-Below, everything is AI generated, take consideration.
-
----
-
-## Repo A — Connector (GitHub Pages)
-
-**Repository:** `connector-router-ui` (static site: React + TypeScript + Vite)
-**Deploy target:** GitHub Pages (branch `gh-pages`)
-**Purpose:** Chat‑style UI that treats each chat thread as a **SandboxPage** (its own cookie jar/history). All network requests are proxied to the Worker using two endpoints: `GET /p` and `POST /fetch`.
-
-### A.1 Deliverables
-
-* Chat‑style interface with a sidebar of sandboxes (tabs) and a main viewer pane.
-* **OOP model:** `SandboxPage` (per‑site sandbox), `CookieStore` (IndexedDB), `UrlHistory`.
-* **Service Worker** (`proxy-sw.ts`): warms TLS/H2 to Worker, forwards responses, reads `X-Set-Cookie` and posts updates to the page.
-* Media elements (`<img>`, `<video>`, `<audio>`, `<iframe>`) use the Worker’s `/p` endpoint with `sid`.
-* Programmatic navigation/API calls use the Worker’s `/fetch`.
-
-### A.2 Public Config
-
-* `VITE_WORKER_BASE`: e.g. `https://<worker-subdomain>.workers.dev`
-* `CONNECTOR_ORIGIN`: the site origin (used by Worker CORS; mirrored in docs only)
-
-### A.3 Stable Client → Worker Contract
-
-* **GET** `${VITE_WORKER_BASE}/p?sid=<sid>&u=<base64url(absolute_https_url)>`
-  Usage: images/video/audio/iframe and simple GET/HEAD. Browser may send `Range`.
-
-* **POST** `${VITE_WORKER_BASE}/fetch` with JSON body:
-
-  ```json
-  {
-    "sid": "sandbox-uuid",
-    "target": "https://host/path",
-    "method": "GET|POST|HEAD",
-    "headers": { "Accept": "..." },
-    "bodyB64": "..." // optional
+```jsonc
+{
+  "id": "bootstrap-api",
+  "ok": true,
+  "status": 200,
+  "statusText": "OK",
+  "durationMs": 132,
+  "headers": {
+    "content-type": "application/json",
+    "x-set-cookie": "session%3Dabc123"
+  },
+  "body": {
+    "encoding": "json",
+    "data": { "user": { "name": "Riley" } }
   }
-  ```
-
-**Response headers exposed by Worker** (read-only on the Connector):
-`Content-Type, Content-Length, Accept-Ranges, Content-Range, ETag, Last-Modified, X-Set-Cookie`.
-
-### A.4 Key Classes (skeleton requirements)
-
-* `SandboxPage.ts`
-
-  * Props: `id (sid)`, `homeUrl`, `title`, `history`, `cookieStore`.
-  * Methods: `navigate(url, init?)`, `renderDocument(resp)`.
-* `CookieStore.ts`
-
-  * Methods: `applyFromHeader(xSetCookie)`, `getDisplay(host)`, `load()`, `save()`.
-* `UrlHistory.ts`
-
-  * Methods: `push(url)`, `back()`, `forward()`.
-* `ConnectorApp.tsx`
-
-  * Create/delete sandboxes; per‑sandbox URL bar + output pane.
-* `sw/proxy-sw.ts`
-
-  * Install/activate; `postMessage('warmup')` support; capture `X-Set-Cookie` and forward to clients.
-
-### A.5 Commands
-
-```bash
-# dev
-npm i
-npm run dev
-# build for GH Pages
-npm run build
-# deploy via Actions to gh-pages (include sample workflow in repo)
+}
 ```
 
-### A.6 Acceptance (Connector‑only, stub Worker)
+The top-level response also carries a combined `X-Set-Cookie` header containing
+all cookies observed while executing the batch. Merge it into your local storage
+before issuing follow-up calls.
 
-* Hitting `/p` for a public image returns and renders.
-* `<video>` seeks via `Range` (206) through `/p`.
-* Posting to `/fetch` returns HTML/JSON rendered in the viewer.
+## Cookie Handling
 
-Notes implemented in this repo:
-- A React + Vite TypeScript app with `SandboxPage`, `CookieStore`, `UrlHistory` classes under `src/app/`.
-- Service worker `src/sw/proxy-sw.ts` that rewrites app-origin `/p` and `/fetch` to `VITE_WORKER_BASE`, warms connection, and broadcasts `X-Set-Cookie` via `postMessage` to update cookie jar.
-- Chat-style, light-themed UI with a sidebar of sandboxes and a main viewer pane. Media tester uses `/p?sid=..&u=..` and navigation uses `/fetch`.
-- GitHub Actions workflow deploys `dist` to `gh-pages` on push to `dev`.
+1. After every response (including batches), look for the `X-Set-Cookie` header.
+2. Split on commas and `decodeURIComponent` each entry to recover the original
+   `Set-Cookie` strings.
+3. Mirror the cookies in the connector’s storage and send them back on future
+   calls associated with the same `sid`.
 
----
+Cookies are persisted server-side when Durable Objects are configured, so even
+parallel connectors will see a consistent view as long as they reuse the same
+`sid`.
 
-## Repo B — Worker (Cloudflare Workers)
+## Recommended Request Headers
 
-**Repository:** `router-worker-edge` (TypeScript + Hono)
-**Deploy target:** Cloudflare Workers (`*.workers.dev`)
-**Purpose:** Low‑latency HTTPS proxy with minimal validation, streaming, range support, and optional **Durable Object (SessionDO)** for per‑sandbox cookies.
+The worker already supplies a realistic browser fingerprint:
 
-### B.1 Deliverables
+* `User-Agent`: Chrome on Windows 10.
+* `Accept`: rich HTML/media preference list.
+* `Accept-Language`: `en-US,en;q=0.9`.
 
-* Route: **`GET /p`** for media/GET/HEAD with `Range` passthrough.
-* Route: **`POST /fetch`** for JSON control plane (HTML/API/POST bodies).
-* Header filtering both ways (strip hop‑by‑hop; expose safe headers).
-* CORS: `Access-Control-Allow-Origin` pinned to connector origin (or `*` if no credentials).
-* **Optional:** `SessionDO` cookie jar keyed by `sid`, emitting `X-Set-Cookie`.
+You can override any of these by sending explicit header values. Avoid
+forwarding hop-by-hop headers (`Connection`, `Transfer-Encoding`, etc.) or
+restricted headers like `Host`, `Cookie`, and `Content-Length`; the worker will
+strip them for safety.
 
-### B.2 Environment / Config
+## Error Codes
 
-* `CONNECTOR_ORIGIN` (exact origin string to allow via CORS; or `*`).
-* **Optional DO binding:** `SESSION_DO` → class `SessionDO`.
+* `400` – Validation failure (missing target, invalid Base64URL, non-HTTPS).
+* `405` – Unsupported method.
+* `0 / FETCH_ERROR` – Network failure or DNS issue when reaching the upstream.
 
-### B.3 Request Handling Rules
+When a batch contains an error, only that entry fails; other entries still
+complete.
 
-* Validate **absolute `https://`** target URLs only.
-* Allow **methods**: `GET|HEAD|POST`.
-* For `/p`: accept `sid`, `u` (base64url target), copy `Range` header as‑is.
-* For `/fetch`: parse JSON, copy allowed request headers and optional `bodyB64`.
-* Upstream fetch with `redirect: 'follow'`; set `cf` caching hints (toggle).
-* Response: stream body; forward **safe** headers:
-  `Content-Type, Content-Length, Accept-Ranges, Content-Range, ETag, Last-Modified`.
-* **Cookies:** Never forward raw `Set-Cookie` to the browser. If DO is enabled, merge into jar and emit consolidated `X-Set-Cookie` (URL‑encoded) for the SW to mirror.
+## Example Workflow
 
-### B.4 Files
+1. Connector receives a URL locally.
+2. Generate/lookup the sandbox `sid`.
+3. Encode the target with Base64URL and call `GET /p` for media or `POST /fetch`
+   / `POST /dispatch` for document/API fetches.
+4. Apply any cookies returned via `X-Set-Cookie`.
+5. Render the upstream response locally. Repeat for additional assets.
 
-* `src/index.ts` — Hono app with `/p`, `/fetch`, shared helpers (validation, header filters, base64url utils).
-* `src/session_do.ts` — (optional) per‑sid cookie map with `getCookieHeader(url)` & `mergeSetCookies(url, setCookieHeaders[])`.
-* `wrangler.toml` — name, bindings, `CONNECTOR_ORIGIN`, DO binding (optional), `compatibility_date`.
-
-### B.5 Commands
-
-```bash
-npm i
-npx wrangler dev
-npx wrangler deploy
+Keeping requests batched when possible reduces round trips and helps the worker
+optimise cookie persistence for high-concurrency workloads.
 ```
 
-### B.6 Acceptance (Worker‑only)
-
-* `curl` image via `/p?u=...` returns bytes with correct `Content-Type`.
-* `curl` with `Range` returns `206` and proper `Content-Range`.
-* `/fetch` relays HTML/JSON with status passthrough.
-* If DO enabled: repeated requests show cookies persisted per `sid`.
-
----
-
-## Integration: Contract Recap (Read‑only in both repos)
-
-* **Endpoints:**
-
-  * `GET /p?sid=<sid>&u=<base64url(absolute_https_url)>`
-  * `POST /fetch` with body `{ sid, target, method, headers, bodyB64? }`
-* **Worker Response Policy:**
-
-  * CORS: allow Connector origin (or `*`).
-  * Expose headers: `Content-Type, Content-Length, Accept-Ranges, Content-Range, ETag, Last-Modified, X-Set-Cookie`.
-  * No raw `Set-Cookie` to client; use `X-Set-Cookie` if cookies are supported.
-* **Latency:** All bodies streamed; Range passthrough; optional edge cache for media.
-
----
-
-## Prompts for Codex — Use the Right Repo
-
-### For Repo A (Connector)
-
-> **Generate a React + Vite app** named `connector-router-ui` with:
->
-> * Classes: `SandboxPage.ts`, `CookieStore.ts`, `UrlHistory.ts` under `src/app/`.
-> * `ConnectorApp.tsx` (chat‑style UI) and `main.tsx`.
-> * `sw/proxy-sw.ts` service worker registered from `main.tsx`.
-> * An `.env` entry `VITE_WORKER_BASE` used wherever requests are sent.
-> * In the viewer, load media by setting `src` to `${VITE_WORKER_BASE}/p?sid=...&u=...` and fetch HTML/API via `${VITE_WORKER_BASE}/fetch`.
-> * Provide minimal CSS for a chat‑like layout (sidebar + pane).
-
-### For Repo B (Worker)
-
-> **Generate a Hono Worker** named `router-worker-edge` with routes `/p` and `/fetch`:
->
-> * Validate https targets; allow only GET|HEAD|POST; strip hop‑by‑hop headers.
-> * `/p` supports `Range`; forward/return `Accept-Ranges` and `Content-Range`.
-> * Stream responses; set `Access-Control-Allow-Origin` to `CONNECTOR_ORIGIN` (or `*`).
-> * `Access-Control-Expose-Headers` includes `Content-Type, Content-Length, Accept-Ranges, Content-Range, ETag, Last-Modified, X-Set-Cookie`.
-> * Optional `SessionDO` for cookies; emit `X-Set-Cookie`.
-> * Include `wrangler.toml` with required bindings.
-
----
-
-## Visual — High‑level Separation
-
-```mermaid
-flowchart LR
-  subgraph RepoA[Repo A: connector-router-ui (GitHub Pages)]
-    A1[React UI: ConnectorApp]
-    A2[SandboxPage / CookieStore / UrlHistory]
-    A3[Service Worker: proxy-sw]
-  end
-
-  subgraph RepoB[Repo B: router-worker-edge (Cloudflare Workers)]
-    B1[GET /p — media/GET/HEAD]
-    B2[POST /fetch — JSON control]
-    B3[(optional) SessionDO — cookies per sid]
-  end
-
-  A1 -->|/p, /fetch HTTP| B1
-  A1 -->|/p, /fetch HTTP| B2
-```
-
----

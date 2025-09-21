@@ -1,6 +1,11 @@
+type CookieRecord = {
+  raw: string;
+  lastSeen: string;
+};
+
 export class CookieStore {
   private key: string;
-  private jar: Record<string, string> = {};
+  private jar: Record<string, CookieRecord> = {};
 
   constructor(sessionId: string) {
     this.key = `cookies:${sessionId}`;
@@ -9,28 +14,43 @@ export class CookieStore {
 
   applyFromHeader(xSetCookie: string | null | undefined) {
     if (!xSetCookie) return;
-    // X-Set-Cookie is URL-encoded by the Worker; decode and store raw for display.
-    try {
-      const decoded = decodeURIComponent(xSetCookie);
-      // Very naive: store under a synthetic host bucket
-      const now = new Date().toISOString();
-      this.jar[now] = decoded;
-      this.save();
-    } catch {
-      // ignore parse errors
+    const chunks = xSetCookie.split(',');
+    const now = new Date().toISOString();
+    for (const chunk of chunks) {
+      const trimmed = chunk.trim();
+      if (!trimmed) continue;
+      try {
+        const decoded = decodeURIComponent(trimmed);
+        const [namePart] = decoded.split(';', 1);
+        const [cookieName] = namePart?.split('=', 1) ?? [];
+        if (cookieName) {
+          this.jar[cookieName.trim()] = { raw: decoded, lastSeen: now };
+        }
+      } catch {
+        // ignore parse errors per cookie
+      }
     }
+    this.save();
   }
 
   getDisplay(host?: string): string[] {
-    const entries = Object.entries(this.jar);
+    void host; // host filtering not implemented but kept for API shape
+    const entries = Object.values(this.jar);
     if (!entries.length) return [];
-    return entries.map(([k, v]) => `${k}: ${v}`);
+    return entries
+      .sort((a, b) => (a.lastSeen < b.lastSeen ? 1 : -1))
+      .map(entry => `${entry.lastSeen} — ${entry.raw}`);
   }
 
   load() {
     try {
       const raw = localStorage.getItem(this.key);
-      if (raw) this.jar = JSON.parse(raw);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          this.jar = parsed as Record<string, CookieRecord>;
+        }
+      }
     } catch {
       this.jar = {};
     }

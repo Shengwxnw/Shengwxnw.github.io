@@ -1,5 +1,11 @@
 Connector Router UI
 
+> New Version upcoming ( Solve relative url issues， migrate to new router schema ）
+
+- Sandbox enhance: A perfect isolated browser environment + a redirect component (simulated browser send requests as any regular browser, the redirect component wrap the request to router)
+- On UI: A simulated browser container that would display html + js + css in it and can full screen
+- All kinds of media should be handed correctly. Unfied url entrance, no seperate `Load Media` Block.
+
 Light themed, chat-style sandboxed browser-in-browser client that proxies all network via a Cloudflare Worker using two endpoints: GET /p and POST /fetch. Built with React + Vite + TypeScript and a Service Worker that rewrites app-origin requests to the Worker base.
 
 Quick start

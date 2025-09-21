@@ -54,7 +54,7 @@ body { margin: 0; color: var(--text); background: var(--bg); font: 14px/1.4 syst
 .main {
   grid-area: main;
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto 1fr;
   height: 100%;
 }
 
@@ -63,16 +63,51 @@ body { margin: 0; color: var(--text); background: var(--bg); font: 14px/1.4 syst
 .btn { padding: 10px 12px; border: 1px solid var(--brand); background: var(--brand); color: #fff; border-radius: 10px; cursor: pointer; }
 .btn.secondary { background: #fff; color: var(--brand); border-color: var(--brand); }
 
-.viewer { display: grid; grid-template-columns: 1fr; overflow: hidden; }
+.viewer { display: flex; flex-direction: column; overflow: hidden; }
 .doc {
-  padding: 0; overflow: auto; height: 100%;
+  padding: 0;
+  overflow: auto;
+  flex: 1;
+  background: #fff;
+  border-bottom: 1px solid var(--border);
 }
 .doc pre { margin: 0; padding: 16px; }
 .doc iframe { width: 100%; height: 100%; border: 0; background: #fff; }
 
-.footer { border-top: 1px solid var(--border); padding: 10px 12px; display: flex; gap: 10px; align-items: center; }
-.footer input[type="text"] { flex: 1; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; }
+.loading { padding: 24px; text-align: center; color: var(--muted); font-size: 15px; }
+.error { color: #b91c1c; }
+.statusbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #fafafa;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--muted);
+}
+.statusbar span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.statusbar .notice { color: #b45309; font-weight: 600; }
+
+.cookie-panel {
+  padding: 12px 16px;
+  background: #fff;
+  border-top: 1px solid var(--border);
+  max-height: 160px;
+  overflow: auto;
+}
+.cookie-title { font-weight: 600; margin-bottom: 8px; }
+.cookie-panel ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+
 .chip { display: inline-flex; align-items: center; background: var(--chip); color: var(--brand-600); border-radius: 999px; padding: 2px 8px; font-size: 12px; }
 
 .cookies { color: var(--muted); font-size: 12px; }
+
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 15px;
+}
 

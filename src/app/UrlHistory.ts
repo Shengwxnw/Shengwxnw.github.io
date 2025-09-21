@@ -21,5 +21,16 @@ export class UrlHistory {
     if (this.idx < this.list.length - 1) this.idx++;
     return this.list[this.idx] ?? '';
   }
+
+  current(): string {
+    return this.list[this.idx] ?? '';
+  }
+
+  replace(url: string) {
+    if (!url) return;
+    if (this.idx >= 0 && this.idx < this.list.length) {
+      this.list[this.idx] = url;
+    }
+  }
 }
 
