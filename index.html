@@ -78,6 +78,11 @@
         color: var(--primary-color);
       }
 
+      .nav-links a.active {
+        color: var(--primary-color);
+        border-bottom: 2px solid var(--primary-color);
+      }
+
       /* --- SECTIONS GENERAL --- */
       section {
         padding: 4rem 2rem;
@@ -260,7 +265,7 @@
       <nav>
         <div class="logo">Shengwxnw</div>
         <ul class="nav-links">
-          <li><a href="./index.html">Home</a></li>
+          <li><a href="./index.html" class="active">Home</a></li>
           <li><a href="./pages/projects.html">Projects</a></li>
           <li><a href="./pages/blogs.html">Blogs</a></li>
         </ul>
@@ -275,7 +280,7 @@
           I am a passionate developer/designer/creator. I build accessible,
           pixel-perfect, and performant web experiences.
         </p>
-        <a href="#projects" class="btn">View My Work</a>
+        <a href="./pages/projects.html" class="btn">View My Work</a>
       </div>
       <div class="hero-image">
         <!-- Replace the src below with your own photo URL -->
