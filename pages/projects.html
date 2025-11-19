@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Projects | My Portfolio</title>
+    <style>
+      /* --- REUSED CSS (Consistent Theme) --- */
+      :root {
+        --primary-color: #2563eb;
+        --text-dark: #1e293b;
+        --text-light: #64748b;
+        --bg-color: #ffffff;
+        --bg-alt: #f8fafc;
+        --max-width: 1100px;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+        line-height: 1.6;
+        color: var(--text-dark);
+        background-color: var(--bg-color);
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh; /* Keeps footer at bottom */
+      }
+
+      a {
+        text-decoration: none;
+        color: inherit;
+        transition: 0.3s;
+      }
+      ul {
+        list-style: none;
+      }
+
+      /* --- NAVIGATION --- */
+      header {
+        background: white;
+        border-bottom: 1px solid #e2e8f0;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+      }
+
+      nav {
+        max-width: var(--max-width);
+        margin: 0 auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 2rem;
+      }
+
+      .logo {
+        font-weight: 700;
+        font-size: 1.2rem;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 2rem;
+      }
+      .nav-links a {
+        font-weight: 500;
+        color: var(--text-light);
+      }
+      .nav-links a:hover {
+        color: var(--primary-color);
+      }
+
+      /* Active link styling */
+      .nav-links a.active {
+        color: var(--primary-color);
+        border-bottom: 2px solid var(--primary-color);
+      }
+
+      /* --- PAGE CONTENT --- */
+      main {
+        flex: 1; /* Pushes footer down */
+        max-width: var(--max-width);
+        margin: 0 auto;
+        padding: 3rem 2rem;
+        width: 100%;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+      }
+      .subtitle {
+        color: var(--text-light);
+        margin-bottom: 3rem;
+        max-width: 600px;
+      }
+
+      /* --- PROJECT GRID --- */
+      .project-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+      }
+
+      .project-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        overflow: hidden;
+        transition: transform 0.2s, box-shadow 0.2s;
+        background: white;
+      }
+
+      .project-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 15px rgba(0, 0, 0, 0.05);
+      }
+
+      .card-image {
+        height: 200px;
+        background-color: #cbd5e1; /* Placeholder gray */
+        background-image: url("https://via.placeholder.com/600x400");
+        background-size: cover;
+        background-position: center;
+      }
+
+      .card-content {
+        padding: 1.5rem;
+      }
+
+      .card-content h3 {
+        margin-bottom: 0.5rem;
+        font-size: 1.25rem;
+      }
+
+      .card-content p {
+        color: var(--text-light);
+        font-size: 0.95rem;
+        margin-bottom: 1rem;
+      }
+
+      .tech-stack {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .tech-tag {
+        font-size: 0.75rem;
+        background: var(--bg-alt);
+        border: 1px solid #e2e8f0;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        color: var(--text-light);
+      }
+
+      .links {
+        display: flex;
+        gap: 1rem;
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+
+      .links a {
+        color: var(--primary-color);
+      }
+      .links a:hover {
+        text-decoration: underline;
+      }
+
+      /* --- FOOTER --- */
+      footer {
+        text-align: center;
+        padding: 2rem;
+        border-top: 1px solid #e2e8f0;
+        color: var(--text-light);
+        margin-top: auto;
+      }
+
+      /* --- RESPONSIVE --- */
+      @media (max-width: 768px) {
+        .nav-links {
+          font-size: 0.9rem;
+          gap: 1rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Navigation -->
+    <header>
+      <nav>
+        <!-- Links to other pages -->
+        <div class="logo"><a href="../index.html">Shengwxnw</a></div>
+        <ul class="nav-links">
+          <li><a href="../index.html">Home</a></li>
+          <!-- Added 'active' class to highlight current page -->
+          <li><a href="projects.html" class="active">Projects</a></li>
+          <li><a href="blog.html">Blog</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+      <h1>My Projects</h1>
+      <p class="subtitle">
+        A collection of my open source contributions, client work, and personal
+        experiments.
+      </p>
+
+      <div class="project-grid">
+        <!-- Project 1 -->
+        <article class="project-card">
+          <div class="card-image">
+            <!-- Optional: Add distinct images for each project here -->
+          </div>
+          <div class="card-content">
+            <h3>E-Commerce Dashboard</h3>
+            <p>
+              A full-stack dashboard for managing inventory and orders. Includes
+              chart visualizations and real-time data updates.
+            </p>
+
+            <div class="tech-stack">
+              <span class="tech-tag">React</span>
+              <span class="tech-tag">Node.js</span>
+              <span class="tech-tag">MongoDB</span>
+            </div>
+
+            <div class="links">
+              <a href="#">View Live Demo</a>
+              <a href="#">GitHub Repo</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- Project 2 -->
+        <article class="project-card">
+          <div class="card-image" style="background-color: #bfdbfe"></div>
+          <div class="card-content">
+            <h3>Weather App</h3>
+            <p>
+              A simple, elegant weather application that pulls data from the
+              OpenWeatherMap API based on user geolocation.
+            </p>
+
+            <div class="tech-stack">
+              <span class="tech-tag">JavaScript</span>
+              <span class="tech-tag">API Integration</span>
+              <span class="tech-tag">CSS Grid</span>
+            </div>
+
+            <div class="links">
+              <a href="#">View Live Demo</a>
+              <a href="#">GitHub Repo</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- Project 3 -->
+        <article class="project-card">
+          <div class="card-image" style="background-color: #fecaca"></div>
+          <div class="card-content">
+            <h3>Personal Finance Tracker</h3>
+            <p>
+              An automated script that parses CSV bank statements and
+              categorizes expenses into a Google Sheet.
+            </p>
+
+            <div class="tech-stack">
+              <span class="tech-tag">Python</span>
+              <span class="tech-tag">Pandas</span>
+              <span class="tech-tag">Google API</span>
+            </div>
+
+            <div class="links">
+              <a href="#">View Article</a>
+              <a href="#">GitHub Repo</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- Project 4 -->
+        <article class="project-card">
+          <div class="card-image" style="background-color: #bbf7d0"></div>
+          <div class="card-content">
+            <h3>Portfolio V1</h3>
+            <p>
+              My previous portfolio site built with pure HTML/CSS. Preserved for
+              archival purposes.
+            </p>
+
+            <div class="tech-stack">
+              <span class="tech-tag">HTML</span>
+              <span class="tech-tag">SASS</span>
+            </div>
+
+            <div class="links">
+              <a href="#">View Site</a>
+            </div>
+          </div>
+        </article>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+      <p>&copy; 2025 Your Shengwxnw. Hosted on GitHub Pages.</p>
+      <p>
+        <a href="https://github.com/shengwxnw">GitHub</a>
+        <!-- | <a href="https://linkedin.com/in/yourusername">LinkedIn</a> -->
+      </p>
+    </footer>
+  </body>
+</html>

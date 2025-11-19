@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog | My Portfolio</title>
+    <style>
+        /* --- REUSED CSS (Consistent Theme) --- */
+        :root {
+            --primary-color: #2563eb;
+            --text-dark: #1e293b;
+            --text-light: #64748b;
+            --bg-color: #ffffff;
+            --bg-alt: #f8fafc;
+            --max-width: 1100px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-dark);
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        a { text-decoration: none; color: inherit; transition: 0.3s; }
+        ul { list-style: none; }
+
+        /* --- NAVIGATION --- */
+        header {
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        nav {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+        }
+
+        .logo { font-weight: 700; font-size: 1.2rem; }
+        
+        .nav-links { display: flex; gap: 2rem; }
+        .nav-links a { font-weight: 500; color: var(--text-light); }
+        .nav-links a:hover { color: var(--primary-color); }
+        
+        .nav-links a.active { 
+            color: var(--primary-color); 
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        /* --- MAIN LAYOUT --- */
+        main {
+            flex: 1;
+            max-width: 800px; /* Narrower width for better reading experience */
+            margin: 0 auto;
+            padding: 3rem 2rem;
+            width: 100%;
+        }
+
+        h1 { font-size: 2.5rem; margin-bottom: 1rem; }
+        .subtitle { color: var(--text-light); margin-bottom: 4rem; }
+
+        /* --- BLOG LIST STYLES --- */
+        .blog-list { display: flex; flex-direction: column; gap: 3rem; }
+
+        .blog-post {
+            display: flex;
+            flex-direction: column;
+            padding-bottom: 3rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .blog-post:last-child { border-bottom: none; }
+
+        .post-meta {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            margin-bottom: 0.5rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .tag {
+            background: var(--bg-alt);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .post-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+        }
+
+        .post-title:hover { color: var(--primary-color); }
+
+        .post-excerpt {
+            color: #475569;
+            margin-bottom: 1rem;
+            line-height: 1.7;
+        }
+
+        .read-link {
+            font-weight: 600;
+            color: var(--primary-color);
+            display: inline-flex;
+            align-items: center;
+            width: fit-content;
+        }
+        
+        .read-link:hover { text-decoration: underline; }
+
+        /* --- FOOTER --- */
+        footer {
+            text-align: center;
+            padding: 2rem;
+            border-top: 1px solid #e2e8f0;
+            color: var(--text-light);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation -->
+    <header>
+        <nav>
+            <div class="logo"><a href="../index.html">Shengwxnw</a></div>
+            <ul class="nav-links">
+                <li><a href="../index.html">Home</a></li>
+                <li><a href="./projects.html">Projects</a></li>
+                <li><a href="./blogs.html" class="active">Blog</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <h1>Writing</h1>
+        <p class="subtitle">Thoughts on development, design, and technology.</p>
+
+        <div class="blog-list">
+
+            <!-- Blog Post 1 -->
+            <article class="blog-post">
+                <div class="post-meta">
+                    <span>Oct 24, 2023</span>
+                    <span class="tag">Tutorial</span>
+                </div>
+                <!-- Link to an external site (Medium/Dev.to) OR an internal HTML file -->
+                <a href="post-1.html" class="post-title">How to deploy a static site to GitHub Pages</a>
+                <p class="post-excerpt">
+                    Deploying a website doesn't have to be complicated. In this guide, I walk through the exact steps to get your HTML/CSS portfolio live in under 5 minutes using GitHub's free hosting tier.
+                </p>
+                <a href="post-1.html" class="read-link">Read Article &rarr;</a>
+            </article>
+
+            <!-- Blog Post 2 -->
+            <article class="blog-post">
+                <div class="post-meta">
+                    <span>Sep 10, 2023</span>
+                    <span class="tag">CSS</span>
+                </div>
+                <a href="#" class="post-title">Understanding Flexbox vs Grid</a>
+                <p class="post-excerpt">
+                    The age-old question: When should you use Flexbox and when should you use Grid? I break down the mental model I use to decide between 1-dimensional and 2-dimensional layouts.
+                </p>
+                <a href="#" class="read-link">Read Article &rarr;</a>
+            </article>
+
+            <!-- Blog Post 3 -->
+            <article class="blog-post">
+                <div class="post-meta">
+                    <span>Aug 05, 2023</span>
+                    <span class="tag">Career</span>
+                </div>
+                <a href="#" class="post-title">Why I switched from Python to Go</a>
+                <p class="post-excerpt">
+                    After three years of writing Python exclusively, I decided to learn Go. Here is what I found difficult, what I found amazing, and why performance matters more than you think.
+                </p>
+                <a href="#" class="read-link">Read Article &rarr;</a>
+            </article>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2025 Your Name. Hosted on GitHub Pages.</p>
+        <p>
+            <a href="https://github.com/shengwxnw">GitHub</a>
+             <!-- | <a href="https://linkedin.com/in/yourusername">LinkedIn</a> -->
+        </p>
+    </footer>
+
+</body>
+</html>
